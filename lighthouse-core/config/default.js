@@ -15,9 +15,9 @@ module.exports = {
     maxWaitForLoad: Driver.MAX_WAIT_FOR_FULLY_LOADED,
     throttlingMethod: 'devtools',
     throttling: {
-      requestLatency: emulation.TYPICAL_MOBILE_THROTTLING_METRICS.latency,
-      downloadThroughput: emulation.TYPICAL_MOBILE_THROTTLING_METRICS.downloadThroughput * 8,
-      uploadThroughput: emulation.TYPICAL_MOBILE_THROTTLING_METRICS.uploadThroughput * 8,
+      requestLatencyMs: emulation.MOBILE_3G_THROTTLING.adjustedLatencyMs,
+      downloadThroughputKbps: emulation.MOBILE_3G_THROTTLING.adjustedDownloadThroughputKbps,
+      uploadThroughputKbps: emulation.MOBILE_3G_THROTTLING.adjustedUploadThroughputKbps,
       cpuSlowdownMultiplier: emulation.CPU_THROTTLE_METRICS.rate,
     },
   },

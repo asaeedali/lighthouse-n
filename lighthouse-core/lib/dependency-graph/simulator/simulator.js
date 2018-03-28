@@ -16,8 +16,8 @@ const emulation = require('../../emulation').settings;
 const DEFAULT_MAXIMUM_CONCURRENT_REQUESTS = 10;
 
 // Fast 3G emulation target from DevTools, WPT 3G - Fast setting
-const DEFAULT_RTT = emulation.TYPICAL_MOBILE_THROTTLING_METRICS.targetLatency;
-const DEFAULT_THROUGHPUT = emulation.TYPICAL_MOBILE_THROTTLING_METRICS.targetDownloadThroughput * 8; // 1.6 Mbps
+const DEFAULT_RTT = emulation.MOBILE_3G_THROTTLING.targetLatencyMs;
+const DEFAULT_THROUGHPUT = emulation.MOBILE_3G_THROTTLING.targetDownloadThroughputKbps * 1024; // 1.6 Mbps
 
 // same multiplier as Lighthouse uses for CPU emulation
 const DEFAULT_CPU_TASK_MULTIPLIER = emulation.CPU_THROTTLE_METRICS.rate;

@@ -1034,7 +1034,7 @@ class Driver {
    */
   async setThrottling(settings, passConfig) {
     if (settings.throttlingMethod !== 'devtools') {
-      return;
+      return emulation.clearAllNetworkEmulation(this);
     }
 
     const cpuPromise = passConfig.useThrottling ?
@@ -1042,7 +1042,7 @@ class Driver {
         emulation.disableCPUThrottling(this);
     const networkPromise = passConfig.useThrottling ?
         emulation.enableNetworkThrottling(this, settings.throttling) :
-        emulation.disableNetworkThrottling(this);
+        emulation.clearAllNetworkEmulation(this);
 
     await Promise.all([cpuPromise, networkPromise]);
   }

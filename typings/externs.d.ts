@@ -12,12 +12,12 @@ declare global {
 
     interface ThrottlingSettings {
       // simulation settings
-      rtt?: number;
-      throughput?: number;
+      rttMs?: number;
+      throughputKbps?: number;
       // devtools settings
-      requestLatency?: number;
-      downloadThroughput?: number;
-      uploadThroughput?: number;
+      requestLatencyMs?: number;
+      downloadThroughputKbps?: number;
+      uploadThroughputKbps?: number;
       // used by both
       cpuSlowdownMultiplier?: number
     }

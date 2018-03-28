@@ -134,8 +134,8 @@ describe('GatherRunner', function() {
       calledNetworkEmulation: false,
       calledCpuEmulation: false,
     };
-    const createEmulationCheck = variable => () => {
-      tests[variable] = true;
+    const createEmulationCheck = variable => (arg) => {
+      tests[variable] = arg;
 
       return true;
     };
@@ -149,7 +149,9 @@ describe('GatherRunner', function() {
       settings: {},
     }).then(_ => {
       assert.ok(tests.calledDeviceEmulation, 'did not call device emulation');
-      assert.ok(!tests.calledNetworkEmulation, 'called network emulation');
+      assert.deepEqual(tests.calledNetworkEmulation, {
+        latency: 0, downloadThroughput: 0, uploadThroughput: 0, offline: false,
+      });
       assert.ok(!tests.calledCpuEmulation, 'called cpu emulation');
     });
   });
@@ -205,7 +207,9 @@ describe('GatherRunner', function() {
       },
     }).then(_ => {
       assert.ok(tests.calledDeviceEmulation, 'did not call device emulation');
-      assert.ok(!tests.calledNetworkEmulation, 'called network emulation');
+      assert.deepEqual(tests.calledNetworkEmulation, [{
+        latency: 0, downloadThroughput: 0, uploadThroughput: 0, offline: false,
+      }]);
       assert.ok(!tests.calledCpuEmulation, 'called CPU emulation');
     });
   });
@@ -230,16 +234,16 @@ describe('GatherRunner', function() {
       settings: {
         throttlingMethod: 'devtools',
         throttling: {
-          requestLatency: 100,
-          downloadThroughput: 800,
-          uploadThroughput: 800,
+          requestLatencyMs: 100,
+          downloadThroughputKbps: 8,
+          uploadThroughputKbps: 8,
           cpuSlowdownMultiplier: 1,
         },
       },
     }).then(_ => {
       assert.ok(tests.calledDeviceEmulation, 'did not call device emulation');
       assert.deepEqual(tests.calledNetworkEmulation, [{
-        latency: 100, downloadThroughput: 100, uploadThroughput: 100, offline: false,
+        latency: 100, downloadThroughput: 1024, uploadThroughput: 1024, offline: false,
       }]);
       assert.deepEqual(tests.calledCpuEmulation, [{rate: 1}]);
     });

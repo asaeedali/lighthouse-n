@@ -42,17 +42,16 @@ const LATENCY_FACTOR = 3.75;
 const THROUGHPUT_FACTOR = 0.9;
 
 const TARGET_LATENCY = 150; // 150ms
-const TARGET_DOWNLOAD_THROUGHPUT = Math.floor(1.6 * 1024 * 1024 / 8); // 1.6Mbps
-const TARGET_UPLOAD_THROUGHPUT = Math.floor(750 * 1024 / 8); // 750Kbps
+const TARGET_DOWNLOAD_THROUGHPUT = Math.floor(1.6 * 1024); // 1.6Mbps
+const TARGET_UPLOAD_THROUGHPUT = Math.floor(750); // 750Kbps
 
-const TYPICAL_MOBILE_THROTTLING_METRICS = {
-  targetLatency: TARGET_LATENCY,
-  latency: TARGET_LATENCY * LATENCY_FACTOR,
-  targetDownloadThroughput: TARGET_DOWNLOAD_THROUGHPUT,
-  downloadThroughput: TARGET_DOWNLOAD_THROUGHPUT * THROUGHPUT_FACTOR,
-  targetUploadThroughput: TARGET_UPLOAD_THROUGHPUT,
-  uploadThroughput: TARGET_UPLOAD_THROUGHPUT * THROUGHPUT_FACTOR,
-  offline: false,
+const MOBILE_3G_THROTTLING = {
+  targetLatencyMs: TARGET_LATENCY,
+  adjustedLatencyMs: TARGET_LATENCY * LATENCY_FACTOR,
+  targetDownloadThroughputKbps: TARGET_DOWNLOAD_THROUGHPUT,
+  adjustedDownloadThroughputKbps: TARGET_DOWNLOAD_THROUGHPUT * THROUGHPUT_FACTOR,
+  targetUploadThroughputKbps: TARGET_UPLOAD_THROUGHPUT,
+  adjustedUploadThroughputKbps: TARGET_UPLOAD_THROUGHPUT * THROUGHPUT_FACTOR,
 };
 
 const OFFLINE_METRICS = {
@@ -126,23 +125,40 @@ function enableNexus5X(driver) {
  * @return {Promise<void>}
  */
 function enableNetworkThrottling(driver, throttlingSettings) {
-  let conditions = TYPICAL_MOBILE_THROTTLING_METRICS;
+  let conditions;
   if (throttlingSettings) {
     conditions = {
-      offline: false,
-      latency: throttlingSettings.requestLatency,
-      downloadThroughput: throttlingSettings.downloadThroughput / 8,
-      uploadThroughput: throttlingSettings.uploadThroughput / 8,
+      latency: throttlingSettings.requestLatencyMs,
+      downloadThroughput: throttlingSettings.downloadThroughputKbps,
+      uploadThroughput: throttlingSettings.uploadThroughputKbps,
+    };
+  } else {
+    conditions = {
+      latency: MOBILE_3G_THROTTLING.adjustedLatencyMs,
+      downloadThroughput: MOBILE_3G_THROTTLING.adjustedDownloadThroughputKbps,
+      uploadThroughput: MOBILE_3G_THROTTLING.adjustedUploadThroughputKbps,
     };
   }
 
+  // DevTools expects throughput in bytes per second rather than kbps
+  conditions.offline = false;
+  conditions.downloadThroughput = conditions.downloadThroughput * 1024 / 8;
+  conditions.uploadThroughput = conditions.uploadThroughput * 1024 / 8;
   return driver.sendCommand('Network.emulateNetworkConditions', conditions);
 }
 
-function disableNetworkThrottling(driver) {
+/**
+ * @param {Driver} driver
+ * @return {Promise<void>}
+ */
+function clearAllNetworkEmulation(driver) {
   return driver.sendCommand('Network.emulateNetworkConditions', NO_THROTTLING_METRICS);
 }
 
+/**
+ * @param {Driver} driver
+ * @return {Promise<void>}
+ */
 function goOffline(driver) {
   return driver.sendCommand('Network.emulateNetworkConditions', OFFLINE_METRICS);
 }
@@ -159,6 +175,10 @@ function enableCPUThrottling(driver, throttlingSettings) {
   return driver.sendCommand('Emulation.setCPUThrottlingRate', {rate});
 }
 
+/**
+ * @param {Driver} driver
+ * @return {Promise<void>}
+ */
 function disableCPUThrottling(driver) {
   return driver.sendCommand('Emulation.setCPUThrottlingRate', NO_CPU_THROTTLE_METRICS);
 }
@@ -207,7 +227,7 @@ function getEmulationDesc(settings) {
 module.exports = {
   enableNexus5X,
   enableNetworkThrottling,
-  disableNetworkThrottling,
+  clearAllNetworkEmulation,
   enableCPUThrottling,
   disableCPUThrottling,
   goOffline,
@@ -215,7 +235,7 @@ module.exports = {
   settings: {
     NEXUS5X_EMULATION_METRICS,
     NEXUS5X_USERAGENT,
-    TYPICAL_MOBILE_THROTTLING_METRICS,
+    MOBILE_3G_THROTTLING,
     OFFLINE_METRICS,
     NO_THROTTLING_METRICS,
     NO_CPU_THROTTLE_METRICS,
