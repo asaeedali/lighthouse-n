@@ -3,8 +3,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
-// @ts-nocheck
 'use strict';
+
+const Driver = require('../gather/driver'); // eslint-disable-line no-unused-vars
 
 const NBSP = '\xa0';
 
@@ -76,34 +77,10 @@ const CPU_THROTTLE_METRICS = {
   rate: 4,
 };
 
+/**
+ * @param {Driver} driver
+ */
 function enableNexus5X(driver) {
-  // COMPAT FIMXE
-  // Injecting this function clientside is no longer neccessary as of m62. This is done
-  // on the backend when `Emulation.setTouchEmulationEnabled` is set.
-  //   https://bugs.chromium.org/p/chromium/issues/detail?id=133915#c63
-  // Once m62 hits stable (~Oct 20th) we can nuke this entirely
-  /**
-   * Finalizes touch emulation by enabling `"ontouchstart" in window` feature detect
-   * to work. Messy hack, though copied verbatim from DevTools' emulation/TouchModel.js
-   * where it's been working for years. addScriptToEvaluateOnLoad runs before any of the
-   * page's JavaScript executes.
-   */
-  /* eslint-disable no-proto */ /* global window, document */ /* istanbul ignore next */
-  const injectedTouchEventsFunction = function() {
-    const touchEvents = ['ontouchstart', 'ontouchend', 'ontouchmove', 'ontouchcancel'];
-    const recepients = [window.__proto__, document.__proto__];
-    for (let i = 0; i < touchEvents.length; ++i) {
-      for (let j = 0; j < recepients.length; ++j) {
-        if (!(touchEvents[i] in recepients[j])) {
-          Object.defineProperty(recepients[j], touchEvents[i], {
-            value: null, writable: true, configurable: true, enumerable: true,
-          });
-        }
-      }
-    }
-  };
-  /* eslint-enable */
-
   return Promise.all([
     driver.sendCommand('Emulation.setDeviceMetricsOverride', NEXUS5X_EMULATION_METRICS),
     // Network.enable must be called for UA overriding to work
@@ -112,9 +89,6 @@ function enableNexus5X(driver) {
     driver.sendCommand('Emulation.setTouchEmulationEnabled', {
       enabled: true,
       configuration: 'mobile',
-    }),
-    driver.sendCommand('Page.addScriptToEvaluateOnLoad', {
-      scriptSource: '(' + injectedTouchEventsFunction.toString() + ')()',
     }),
   ]);
 }
@@ -125,15 +99,18 @@ function enableNexus5X(driver) {
  * @return {Promise<void>}
  */
 function enableNetworkThrottling(driver, throttlingSettings) {
+  /** @type {LH.Crdp.Network.EmulateNetworkConditionsRequest} */
   let conditions;
   if (throttlingSettings) {
     conditions = {
-      latency: throttlingSettings.requestLatencyMs,
-      downloadThroughput: throttlingSettings.downloadThroughputKbps,
-      uploadThroughput: throttlingSettings.uploadThroughputKbps,
+      offline: false,
+      latency: throttlingSettings.requestLatencyMs || 0,
+      downloadThroughput: throttlingSettings.downloadThroughputKbps || 0,
+      uploadThroughput: throttlingSettings.uploadThroughputKbps || 0,
     };
   } else {
     conditions = {
+      offline: false,
       latency: MOBILE_3G_THROTTLING.adjustedLatencyMs,
       downloadThroughput: MOBILE_3G_THROTTLING.adjustedDownloadThroughputKbps,
       uploadThroughput: MOBILE_3G_THROTTLING.adjustedUploadThroughputKbps,
@@ -141,7 +118,6 @@ function enableNetworkThrottling(driver, throttlingSettings) {
   }
 
   // DevTools expects throughput in bytes per second rather than kbps
-  conditions.offline = false;
   conditions.downloadThroughput = conditions.downloadThroughput * 1024 / 8;
   conditions.uploadThroughput = conditions.uploadThroughput * 1024 / 8;
   return driver.sendCommand('Network.emulateNetworkConditions', conditions);
@@ -185,12 +161,16 @@ function disableCPUThrottling(driver) {
 
 /**
  * @param {LH.ConfigSettings} settings
- * @return {deviceEmulation: string, cpuThrottling: string, networkThrottling: string}
+ * @return {{deviceEmulation: string, cpuThrottling: string, networkThrottling: string}}
  */
 function getEmulationDesc(settings) {
   let cpuThrottling;
   let networkThrottling;
-  const byteToKbit = bytes => (bytes / 1024 * 8).toFixed();
+
+  /** @type {function(number|undefined):string} */
+  const byteToKbit = (bytes = 0) => (bytes / 1024 * 8).toFixed();
+  /** @type {LH.ThrottlingSettings} */
+  const throttling = settings.throttling || {};
 
   switch (settings.throttlingMethod) {
     case 'provided':
@@ -198,23 +178,26 @@ function getEmulationDesc(settings) {
       networkThrottling = 'Provided by environment';
       break;
     case 'devtools': {
-      const {cpuSlowdownMultiplier, requestLatency} = settings.throttling;
-      const down = byteToKbit(settings.throttling.downloadThroughput);
-      const up = byteToKbit(settings.throttling.uploadThroughput);
+      const {cpuSlowdownMultiplier, requestLatencyMs} = throttling;
+      const down = byteToKbit(throttling.downloadThroughputKbps);
+      const up = byteToKbit(throttling.uploadThroughputKbps);
 
       cpuThrottling = `${cpuSlowdownMultiplier}x slowdown (DevTools)`;
-      networkThrottling = `${requestLatency}${NBSP}ms HTTP RTT, ` +
+      networkThrottling = `${requestLatencyMs}${NBSP}ms HTTP RTT, ` +
         `${down}${NBSP}Kbps down, ${up}${NBSP}Kbps up (DevTools)`;
       break;
     }
     case 'simulate': {
-      const {cpuSlowdownMultiplier, rtt} = settings.throttling;
-      const throughput = byteToKbit(settings.throttling.throughput);
+      const {cpuSlowdownMultiplier, rttMs} = throttling;
+      const throughput = byteToKbit(throttling.throughputKbps);
       cpuThrottling = `${cpuSlowdownMultiplier}x slowdown (Simulated)`;
-      networkThrottling = `${rtt}${NBSP}ms TCP RTT, ` +
+      networkThrottling = `${rttMs}${NBSP}ms TCP RTT, ` +
         `${throughput}${NBSP}Kbps throughput (Simulated)`;
       break;
     }
+    default:
+      cpuThrottling = 'Unknown';
+      networkThrottling = 'Unknown';
   }
 
   return {
