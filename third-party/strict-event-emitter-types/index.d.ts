@@ -1,5 +1,7 @@
-// Copied from
+// Modified from
 // https://github.com/bterlson/strict-event-emitter-types/blob/96b30cae8d128c166b575c4c9a524c997ab4f040/src/index.ts
+// for better JSDoc support (as of TS 2.8, JSDoc does not support method overrides
+// in JS, so not possible to implement the original OverriddenMethods).
 
 // Returns any keys of TRecord with the type of TMatch
 export type MatchingKeys<
@@ -18,34 +20,29 @@ export interface TypeRecord<T, U, V> {
   ' _emitType'?: V
 }
 
-// EventEmitter method overrides
+
+// EventEmitter method overrides, modified so no overloaded methods.
 export type OverriddenMethods<
   TEventRecord,
-  TEmitRecord = TEventRecord,
-  EventVK extends VoidKeys<TEventRecord> = VoidKeys<TEventRecord>,
-  EventNVK extends Exclude<keyof TEventRecord, EventVK> =  Exclude<keyof TEventRecord, EventVK>,
-  EmitVK extends VoidKeys<TEmitRecord> = VoidKeys<TEmitRecord>,
-  EmitNVK extends Exclude<keyof TEmitRecord, EmitVK> =  Exclude<keyof TEmitRecord, EmitVK>
+  TEmitRecord = TEventRecord
   > = {
-    on<P extends EventNVK>(event: P, listener: (m: TEventRecord[P], ...args: any[]) => void): any;
-    on<P extends EventVK>(event: P, listener: () => void): any;
+    on<P extends keyof TEventRecord>(event: P, listener: TEventRecord[P] extends void ? () => void : (m: TEventRecord[P], ...args: any[]) => void): void
 
-    addListener<P extends EventNVK>(event: P, listener: (m: TEventRecord[P], ...args: any[]) => void): any
-    addListener<P extends EventVK>(event: P, listener: () => void): any;
+    addListener<P extends keyof TEventRecord>(event: P, listener: TEventRecord[P] extends void ? () => void : (m: TEventRecord[P], ...args: any[]) => void): void
 
-    addEventListener<P extends EventNVK>(event: P, listener: (m: TEventRecord[P], ...args: any[]) => void): any
-    addEventListener<P extends EventVK>(event: P, listener: () => void): any;
+    addEventListener<P extends keyof TEventRecord>(event: P, listener: TEventRecord[P] extends void ? () => void : (m: TEventRecord[P], ...args: any[]) => void): void
 
-    removeListener<P extends EventVK | EventNVK>(event: P, listener: Function): any;
+    removeListener<P extends keyof TEventRecord>(event: P, listener: Function): any;
 
-    once<P extends EventNVK>(event: P, listener: (m: TEventRecord[P], ...args: any[]) => void): any
-    once<P extends EventVK>(event: P, listener: () => void): any;
+    once<P extends keyof TEventRecord>(event: P, listener: TEventRecord[P] extends void ? () => void : (m: TEventRecord[P], ...args: any[]) => void): void
 
-    emit<P extends EmitNVK>(event: P, request: TEmitRecord[P]): any;
-    emit<P extends EmitVK>(event: P): any;
+    // TODO(bckenny): breaking change from original. A void TEmitRecord[P] meant
+    // no second parameter, but now a second one is always required and must
+    // extend `void` (e.g. `undefined`).
+    emit<P extends keyof TEmitRecord>(event: P, request: TEmitRecord[P]): void;
   }
 
-export type OverriddenKeys = keyof OverriddenMethods<any, any, any>
+export type OverriddenKeys = keyof OverriddenMethods<any, any>
 
 export type StrictEventEmitter<
   TEmitterType,

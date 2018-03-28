@@ -4,11 +4,15 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import _Crdp from '../node_modules/vscode-chrome-debug-core/lib/crdp/crdp';
+import _Crdp from "../node_modules/vscode-chrome-debug-core/lib/crdp/crdp";
+import _StrictEventEmitter from '../third-party/strict-event-emitter-types/index';
 
 declare global {
   module LH {
+    // re-export useful type modules under global LH module.
     export import Crdp = _Crdp;
+    export type StrictEventEmitter<TEmitterType, TEventRecord, TEmitRecord = TEventRecord> =
+      _StrictEventEmitter<TEmitterType, TEventRecord, TEmitRecord>;
 
     interface SharedFlagsSettings {
       maxWaitForLoad?: number;
