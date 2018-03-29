@@ -30,7 +30,7 @@ const DEFAULT_NETWORK_QUIET_THRESHOLD = 5000;
 const DEFAULT_CPU_QUIET_THRESHOLD = 0;
 
 /**
- * @typedef {LH.StrictEventEmitter<EventEmitter, LH.CrdpEvents>} CrdpEventEmitter
+ * @typedef {LH.StrictEventEmitter<LH.CrdpEvents>} CrdpEventEmitter
  */
 
 class Driver {
@@ -1187,7 +1187,7 @@ Driver.prototype.on = function on(eventName, cb) {
 /**
  * Bind a one-time listener for protocol events. Listener is removed once it
  * has been called.
- * @type {CrdpEventEmitter['on']}
+ * @type {CrdpEventEmitter['once']}
  */
 Driver.prototype.once = function once(eventName, cb) {
   if (this._eventEmitter === null) {

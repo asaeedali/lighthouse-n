@@ -15,8 +15,8 @@ const fs = require('fs');
 const path = require('path');
 const ts = require('typescript');
 
-const crdpTypingFile = './node_modules/vscode-chrome-debug-core/lib/crdp/crdp.d.ts';
-const lhCrdpExternsFile = path.resolve(__dirname, '../../typings/crdp-mapping.d.ts');
+const crdpTypingFile = require.resolve('vscode-chrome-debug-core/lib/crdp/crdp.d.ts');
+const lhCrdpExternsOutputFile = path.resolve(__dirname, '../../typings/crdp-mapping.d.ts');
 
 /* eslint-disable max-len */
 const headerBlock = `/**
@@ -189,4 +189,4 @@ export {}
 
 // eslint-disable-next-line no-console
 console.log('crdp mappings generated');
-fs.writeFileSync(lhCrdpExternsFile, crdpStr);
+fs.writeFileSync(lhCrdpExternsOutputFile, crdpStr);

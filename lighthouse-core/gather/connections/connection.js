@@ -10,8 +10,7 @@ const log = require('lighthouse-logger');
 const LHError = require('../../lib/errors');
 
 /**
- * @typedef {{'protocolevent': LH.Protocol.RawEventMessage}} EventMessageRecord
- * @typedef {LH.StrictEventEmitter<EventEmitter, EventMessageRecord>} CrdpEventMessageEmitter
+ * @typedef {LH.StrictEventEmitter<{'protocolevent': LH.Protocol.RawEventMessage}>} CrdpEventMessageEmitter
  */
 
 class Connection {
